@@ -1,0 +1,208 @@
+#!/bin/bash
+#
+# fdd-import: a bash shell script to help automate the procedure of importing content from
+# a set of diskettes into a repository on a stable medium. Creates sequence-numbered
+# directories, takes a disk image using dd, hashes the disk image using certutil,
+# stores a directory listing in a test file, and uses rsync to take a snapshot of the
+# contents at a file level.
+#
+# adapted:	28-Mar-2019
+# revision:	28-May-2019
+
+CMD=$(basename $0)
+
+BINDIR=$(dirname $0)
+PATH=${BINDIR}:${PATH}
+
+BASHENVIRONMENT=""
+DOSENVIRONMENT=""
+
+DRIVENUMBER=0
+
+DDEXT="dd"
+
+# Let's open up the props.tsv file
+PROPSFILE="./props.tsv"
+if [[ -r "${PROPSFILE}" ]] ; then
+	while IFS="" read -r LINE ; do
+		IFS=$'\t' read -ra FIELDS <<< "${LINE}"
+		PROP=`echo "${FIELDS[0]}" | tr [:lower:] [:upper:]`
+		
+		echo "${PROP}:" "${FIELDS[1]}"
+		case "${PROP}" in
+			"SLUG")
+				SLUG="${FIELDS[1]}"
+				;;
+			"DESTPARENT")
+				DESTPARENT="${FIELDS[1]}"
+				;;
+			"DRIVENUMBER")
+				DRIVENUMBER="${FIELDS[1]}"
+				;;
+			"DRIVE")
+				DRIVE="${FIELDS[1]}"
+				;;
+			"EXT")
+				DDEXT="${FIELDS[1]}"
+				;;
+			*)
+				;;
+		esac
+	done < "${PROPSFILE}"
+	
+else
+	echo "[$CMD] required: create a props.tsv with PREFIX and DESTPARENT set"
+	exit
+fi
+
+DESTPARENT=`cygpath --unix "${DESTPARENT}" | sed -e 's/\/*$//g'`
+DESTPARENT="${DESTPARENT}/"
+
+if [ -z "${DRIVE}" ] ; then
+	DEVDIR="/dev/fd${DRIVENUMBER}"
+else
+	DEVDIR="/dev/${DRIVE}"
+fi
+
+DRIVELETTER=$( \
+	cygpath --mixed ${DEVDIR} \
+	| sed 's/^.*\/\([A-Z]\):$/\1/' \
+	| tr '[:upper:]' '[:lower:]' \
+)
+if [[ -d "/cygdrive/c" ]] ; then
+	BASHENVIRONMENT="cygwin"
+	SRCDIR="/cygdrive/${DRIVELETTER}"
+	DOSFDD="${DRIVELETTER}:"
+elif [[ -d "/c" ]] ; then
+	BASHENVIRONMENT="mingw"
+	SRCDIR="/${DRIVELETTER}"
+	DOSFDD="${DRIVELETTER}:"
+else
+	echo "[$CMD] Cannot locate Unix filesystem path for DOS drive ${DRIVELETTER}:"
+	exit
+fi
+
+DESTSUFFIX=foo
+until [ -z "${DESTSUFFIX}" ] ; do
+
+	LASTDESTDIR=`find ${DESTPARENT} -maxdepth 1 -type d -name "${SLUG}[0-9]*" | sort | tail -n 1`
+
+	if [ ! -z "${LASTDESTDIR}" ] ; then
+		echo $LASTDESTDIR
+		LASTDESTIDX=`basename $LASTDESTDIR | sed --regexp-extended "s/^${SLUG}([0-9]+).*$/\1/"`
+	else
+		LASTDESTIDX=0
+	fi
+	
+	NEXTDESTIDX=`printf "%03d" $(( 10#${LASTDESTIDX} + 1 ))`
+	DESTBASE="${SLUG}${NEXTDESTIDX}"
+	DESTDIR="${DESTPARENT}${DESTBASE}"
+	read -p "${DESTDIR}-" DESTSUFFIX
+	if [ ! -z "${DESTSUFFIX}" ] ; then
+		LWD="${PWD}"
+
+		DESTDIR=${DESTDIR}-${DESTSUFFIX}
+
+		echo "[$CMD]" `mkdir --parents --verbose ${DESTDIR}`
+
+		cd ${DESTDIR}
+
+		# DISK-LEVEL: Get any text inscribed on the label
+		echo ""
+		echo "LABEL: (Press Ctrl-D when done)"
+		echo "-------------------------------"
+		cp /dev/tty "${DESTBASE}.label.txt"
+		echo "------------- EOF -------------"
+		echo ""
+		cd "${LWD}"
+		
+		# DISK-LEVEL: chdir to verify the presence of a floppy disk
+		# in the expected drive
+		LINE="NAK"
+		while [[ "${PWD}" != "${SRCDIR}" && "${LINE}" != "OK" ]] ; do
+			echo "[$CMD] \$ cd ${SRCDIR}"
+			cd "${SRCDIR}" || {
+				export LINE ;
+				echo "Please insert the floppy and press ENTER." ;
+				read LINE ;
+			}
+			sleep 1
+		done
+		cd "${LWD}"
+
+		ERRORSTATE=""
+
+		# BLOCK-LEVEL: Take a disk image
+		DDIMG="${DESTDIR}/${DESTBASE}.${DDEXT}"
+		echo "[${CMD}] \$ dd if=${DEVDIR} of=${DDIMG}"
+		echo "--- cut here ---"
+		dd "if=${DEVDIR}" "of=${DDIMG}" || {
+			echo ""
+			echo "[$CMD] WARNING: Possible error state during DD disk image dump." ;
+			ERRORSTATE="${ERRORSTATE}+dd" ;
+		}
+	
+		# BLOCK-LEVEL: Hash disk image and write a record
+		DDFILE=`basename ${DDIMG}`
+		DDDIR=`dirname ${DDIMG}`
+		cd ${DDDIR}
+		
+		export CERTUTIL=`cygpath "${WINDIR}\system32\certutil.exe"`
+		echo "$ ${CERTUTIL} -hashfile ${DDFILE} md5 | grep -P '^\s*([0-9a-f]{2}\s*)+$' | sed -E 's/\s+//g'" 
+		MD5=`${CERTUTIL} -hashfile ${DDFILE} md5 | grep -P '^\s*([0-9a-f]{2}\s*)+$' | sed -E 's/\s+//g'`
+		TS=`date --utc --iso-8601=seconds`
+		OK="OK" ; if [ ! -z "${ERRORSTATE}" ] ; then OK="ERR:${ERRORSTATE}" ; fi
+
+		echo "${MD5}	${DDFILE}	${TS}	:${OK}" > ${DDFILE}.md5
+		cat "${DDFILE}.md5"
+		
+		cd "${LWD}"
+		echo "--- cut here ---"
+		echo ""
+		
+		# FILE-LEVEL: TAKE A DOS DIR LISTING
+		DIRFILE="${DESTDIR}/${DESTBASE}.dir.txt"
+		echo "[${CMD}] \$ cmd /c dir /A /S ${DOSFDD} > ${DIRFILE}"
+		cmd.exe /C "dir /A /S ${DOSFDD} " > ${DIRFILE}
+		
+		# FILE-LEVEL: RSYNC/XCOPY EVERYTHING OVER
+		export COPY=rsync ; ( which "${COPY}" 2>&1 > /dev/null ) || COPY=xcopy
+
+		declare -A EXE
+		declare -A PRE
+		declare -A SRC
+		declare -A DEST
+		declare -A POST
+		
+		EXE[rsync]="rsync"
+		PRE[rsync]="--archive --itemize-changes"
+		SRC[rsync]="${SRCDIR}"
+		DEST[rsync]="${DESTDIR}"
+		POST[rsync]=""
+		
+		EXE[xcopy]="cmd /c 'xcopy.exe"
+		PRE[xcopy]=""
+		SRC[xcopy]=`cygpath --windows "${SRCDIR}"`
+		DEST[xcopy]=`cygpath --windows "${DESTDIR}"`
+		POST[xcopy]="/c /e /h /i /k /q /r /s /x /y'"
+
+		echo "[${CMD}] \$ ${EXE[$COPY]} ${PRE[$COPY]} ${SRC[$COPY]} ${DEST[$COPY]} ${POST[$COPY]}"
+		echo "--- cut here ---"
+		${EXE[$COPY]} ${PRE[$COPY]} "${SRC[$COPY]}" "${DEST[$COPY]}" ${POST[$COPY]} || {
+			echo ""
+			echo "[${CMD}] WARNING: Possible error state during ${COPY} file system mirror." ;
+			ERRORSTATE="${ERRORSTATE}+${COPY}"
+		}
+		echo "--- cut here ---"
+		echo ""
+		
+		if [ ! -z "${ERRORSTATE}" ] ; then
+			ERRORSTATE=`echo ${ERRORSTATE} | sed 's/^[+]//'`
+			echo "[${CMD}] WARNING: Possible errors, ${ERRORSTATE}"
+		else
+			echo "[${CMD}] ALLES IN ORDNUNG: disk image, hash and file-directory rsync completed OK."
+		fi
+		echo ""
+		
+	fi
+done
