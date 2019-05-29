@@ -143,27 +143,13 @@ until [ -z "${DESTSUFFIX}" ] ; do
 		}
 	
 		# BLOCK-LEVEL: Hash disk image and write a record
-		DDFILE=`basename ${DDIMG}`
-		DDDIR=`dirname ${DDIMG}`
-		cd ${DDDIR}
+		fdd-import-dd-md5 --ddimg="${DDIMG}" --lwd="${LWD}" --errorstate="${ERRORSTATE}" 
 		
-		export CERTUTIL=`cygpath "${WINDIR}\system32\certutil.exe"`
-		echo "$ ${CERTUTIL} -hashfile ${DDFILE} md5 | grep -P '^\s*([0-9a-f]{2}\s*)+$' | sed -E 's/\s+//g'" 
-		MD5=`${CERTUTIL} -hashfile ${DDFILE} md5 | grep -P '^\s*([0-9a-f]{2}\s*)+$' | sed -E 's/\s+//g'`
-		TS=`date --utc --iso-8601=seconds`
-		OK="OK" ; if [ ! -z "${ERRORSTATE}" ] ; then OK="ERR:${ERRORSTATE}" ; fi
-
-		echo "${MD5}	${DDFILE}	${TS}	:${OK}" > ${DDFILE}.md5
-		cat "${DDFILE}.md5"
-		
-		cd "${LWD}"
 		echo "--- cut here ---"
 		echo ""
 		
 		# FILE-LEVEL: TAKE A DOS DIR LISTING
-		DIRFILE="${DESTDIR}/${DESTBASE}.dir.txt"
-		echo "[${CMD}] \$ cmd /c dir /A /S ${DOSFDD} > ${DIRFILE}"
-		cmd.exe /C "dir /A /S ${DOSFDD} " > ${DIRFILE}
+		fdd-import-dir-listing --dirfile="${DESTDIR}/${DESTBASE}.dir.txt" --dosfdd="${DOSFDD}" --cmd="${CMD}"
 		
 		# FILE-LEVEL: RSYNC/XCOPY EVERYTHING OVER
 		fdd-import-sync-files --srcdir="${SRCDIR}" --destdir="${DESTDIR}" --cmd="${CMD}" || {

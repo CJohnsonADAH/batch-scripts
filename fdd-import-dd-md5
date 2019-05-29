@@ -1,0 +1,72 @@
+#!/bin/bash
+#
+# fdd-import-dd-md5: a bash shell script to compute and save the MD5 hash of a disk image
+# presumably from a floppy diskette, CD-ROM or similar removable medium, to be saved in
+# a data fragment (one line of a TSV-formatted file) in a repository on a stable medium.
+# It uses the Windows certutil.exe system utility to generate the MD5 hash.
+#
+# This will usually be called by a higher-level script, in particular by the fdd-import
+# batch imaging/mirroring tool.
+#
+# @uses certutil.exe
+# @uses cygpath
+# @uses tr
+# @uses sed
+# @uses grep -P
+# @uses date
+#
+# @param --ddimg=PATH a full Cygwin/Unix path of the disk image file to be hashed
+# 	for example: --ddimg=/cygdrive/m/flops/FLOPPROJ-001-First/FLOPPROJ-001-First.dd
+# @param --lwd=PATH the Cygwin/Unix path of a directory to return to when the script ends
+# 	for example: --lwd=/cygdrive/c/Users/ordinary.luser/
+# @param --errorstate=ERRORSTATE the error code, if any, set by the imaging in the caller
+# 	for example: --errorstate="dd" (indicates error from dd program)
+# 	for example: --errorstate="" (no errors)
+# @return int 0 if successful, non-zero error code if sync utility failed
+#
+# created: 29-May-2019 (extracted from fdd-import)
+# revision: 29-May-2019
+
+# loop through command line arguments looking for named or positional parameters
+until [[ -z "$1" ]] ; do
+	if [[ "$1" =~ ^-{0,2}([a-zA-Z_0-9][^=]*)\s*=\s*(.*)\s*$ ]] ; then
+		KEY=$(echo "${BASH_REMATCH[1]}" | tr [:lower:] [:upper:])
+		VALUE="${BASH_REMATCH[2]}"
+
+		export "${KEY}"="${VALUE}"
+	elif [[ -z "${DDIMG}" ]] ; then
+		DDIMG="$1"
+	elif [[ -z "${LWD}" ]] ; then
+		LWD="$1"
+	elif [[ -z "${ERRORSTATE}" ]] ; then
+		ERRORSTATE="$1"
+	fi
+	shift
+done
+
+# if nobody else called us, then Last Working Directory=PWD
+if [[ -z "${LWD}" ]] ; then
+	LWD="${PWD}"
+fi
+
+EXITCODE=0
+
+	DDFILE=`basename ${DDIMG}`
+	DDDIR=`dirname ${DDIMG}`
+	
+	cd ${DDDIR}
+		
+	export CERTUTIL=`cygpath "${WINDIR}\system32\certutil.exe"` ; EXITCODE=$?
+	echo "$ ${CERTUTIL} -hashfile ${DDFILE} md5 | grep -P '^\s*([0-9a-f]{2}\s*)+$' | sed -E 's/\s+//g'" 
+	MD5=`${CERTUTIL} -hashfile ${DDFILE} md5 | grep -P '^\s*([0-9a-f]{2}\s*)+$' | sed -E 's/\s+//g'`
+	TS=`date --utc --iso-8601=seconds`
+	OK="OK" ; if [ ! -z "${ERRORSTATE}" ] ; then OK="ERR:${ERRORSTATE}" ; fi
+
+	echo "${MD5}	${DDFILE}	${TS}	:${OK}" > ${DDFILE}.md5
+	cat "${DDFILE}.md5"
+		
+	cd "${LWD}"
+
+exit $EXITCODE
+
+		

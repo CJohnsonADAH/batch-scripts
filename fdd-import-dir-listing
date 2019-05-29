@@ -1,0 +1,60 @@
+#!/bin/bash
+#
+# fdd-import-dir-listing: a bash shell script to capture a DOS/Windows directory listing
+# of a floppy diskette, CD-ROM, or similar removable medium into a repository on a stable
+# medium. It uses cmd.exe's dir command and redirects the output to a plain text file.
+#
+# This will usually be called by a higher-level script, in particular by the fdd-import
+# batch imaging/mirroring tool.
+#
+# @uses cmd.exe
+# @uses basename
+# @uses tr
+#
+# @param --dirfile=PATH the (Cygwin/Unix) file system path for the output file
+# 	for example: --dirfile=/cygdrive/m/flops/FLOPPROJ-001-First/FLOPPROJ-001-First.dir.txt
+# @param --dosfdd=PATH the (DOS/Windows) file system path to take the directory listing of
+# 	for example: A:
+# @param --dosshell=COMMAND the command to invoke the DOS/Windows shell (defaults to cmd.exe)
+# @param --cmd=NAME the name, if any, if the calling program (for example, fdd-import)
+# @return int 0 if successful, non-zero error code if sync utility failed
+#
+# created: 29-May-2019 (extracted from fdd-import)
+# revision: 29-May-2019
+
+# loop through command line arguments looking for named or positional parameters
+until [[ -z "$1" ]] ; do
+	if [[ "$1" =~ ^-{0,2}([a-zA-Z_0-9][^=]*)\s*=\s*(.*)\s*$ ]] ; then
+		KEY=$(echo "${BASH_REMATCH[1]}" | tr [:lower:] [:upper:])
+		VALUE="${BASH_REMATCH[2]}"
+
+		export "${KEY}"="${VALUE}"
+	elif [[ -z "${DIRFILE}" ]] ; then
+		DIRFILE="$1"
+	elif [[ -z "${DOSFDD}" ]] ; then
+		DOSFDD="$1"
+	elif [[ -z "${DOSSHELL}" ]] ; then
+		DOSSHELL="$1"
+	elif [[ -z "${CMD}" ]] ; then
+		CMD="$1"
+	fi
+	shift
+done
+
+# if nobody else called us, then use this script's name in diagnostics
+if [[ -z "${CMD}" ]] ; then
+	CMD=`basename $0`
+fi
+
+if [[ -z "${DOSSHELL}" ]] ; then
+	DOSSHELL="cmd.exe /C"
+fi
+
+EXITCODE=0
+
+	echo "[${CMD}] \$ cmd /c dir /A /S ${DOSFDD} > ${DIRFILE}"
+	${DOSSHELL} "dir /A /S ${DOSFDD} " > ${DIRFILE}
+		
+exit $EXITCODE
+
+		
