@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# fdd-import-sync-files: a bash shell script to mirror the file
+# system structure of a floppy diskette, CD-ROM or similar
+# removable media into a repository on a stable medium. This will
+# usually be called by a higher-level script, for example
+# fdd-import. It uses rsync if that is available in the shell
+# environment; if looks for the DOS/Windows xcopy utility if rsync
+# is not available.
+#
+# @uses rsync|xcopy.exe
+# @uses cmd.exe
+# @uses cygpath
+# @uses tr
+#
+# @param --srcdir=PATH mirror the files from the file system location at PATH
+# @param --destdir=PATH mirror them to the file system location at PATH
+# @param --cmd=NAME the name, if any, if the calling program (for example, fdd-import)
+# @return int 0 if successful, non-zero error code if sync utility failed
+#
+# created: 29-May-2019 (extracted from fdd-import)
+# revision: 29-May-2019
+
+# loop through command line arguments looking for named or positional parameters
+until [[ -z "$1" ]] ; do
+	if [[ "$1" =~ ^-{0,2}([a-zA-Z_0-9][^=]*)\s*=\s*(.*)\s*$ ]] ; then
+		KEY=$(echo "${BASH_REMATCH[1]}" | tr [:lower:] [:upper:])
+		VALUE="${BASH_REMATCH[2]}"
+
+		export "${KEY}"="${VALUE}"
+	elif [[ -z "${SRCDIR}" ]] ; then
+		SRCDIR="$1"
+	elif [[ -z "${DESTDIR}" ]] ; then
+		DESTDIR="$1"
+	elif [[ -z "${CMD}" ]] ; then
+		CMD="$1"
+	fi
+	shift
+done
+
+# if nobody else called us, then use our own slug in diagnostic messages
+if [[ -z "${CMD}" ]] ; then
+	CMD=`basename $0`
+fi
+
+EXITCODE=0
+
+export COPY=rsync ; ( which "${COPY}" 2>&1 > /dev/null ) || COPY=xcopy
+
+declare -A EXE
+declare -A PRE
+declare -A SRC
+declare -A DEST
+declare -A POST
+
+EXE[rsync]="rsync"
+PRE[rsync]="--archive --itemize-changes"
+SRC[rsync]="${SRCDIR}"
+DEST[rsync]="${DESTDIR}"
+POST[rsync]=""
+
+EXE[xcopy]="cmd /c 'xcopy.exe"
+PRE[xcopy]=""
+SRC[xcopy]=`cygpath --windows "${SRCDIR}"`
+DEST[xcopy]=`cygpath --windows "${DESTDIR}"`
+POST[xcopy]="/c /e /h /i /k /q /r /s /x /y'"
+
+echo "[${CMD}] \$ ${EXE[$COPY]} ${PRE[$COPY]} ${SRC[$COPY]} ${DEST[$COPY]} ${POST[$COPY]}"
+echo "--- cut here ---"
+${EXE[$COPY]} ${PRE[$COPY]} "${SRC[$COPY]}" "${DEST[$COPY]}" ${POST[$COPY]} || {
+	EXITCODE=$?
+
+	echo ""
+	echo "[${CMD}] WARNING: Possible error state during ${COPY} file system mirror." ;
+}
+echo "--- cut here ---"
+echo ""
+
+exit $EXITCODE
+
+		

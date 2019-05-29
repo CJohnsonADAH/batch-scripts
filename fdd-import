@@ -166,35 +166,9 @@ until [ -z "${DESTSUFFIX}" ] ; do
 		cmd.exe /C "dir /A /S ${DOSFDD} " > ${DIRFILE}
 		
 		# FILE-LEVEL: RSYNC/XCOPY EVERYTHING OVER
-		export COPY=rsync ; ( which "${COPY}" 2>&1 > /dev/null ) || COPY=xcopy
-
-		declare -A EXE
-		declare -A PRE
-		declare -A SRC
-		declare -A DEST
-		declare -A POST
-		
-		EXE[rsync]="rsync"
-		PRE[rsync]="--archive --itemize-changes"
-		SRC[rsync]="${SRCDIR}"
-		DEST[rsync]="${DESTDIR}"
-		POST[rsync]=""
-		
-		EXE[xcopy]="cmd /c 'xcopy.exe"
-		PRE[xcopy]=""
-		SRC[xcopy]=`cygpath --windows "${SRCDIR}"`
-		DEST[xcopy]=`cygpath --windows "${DESTDIR}"`
-		POST[xcopy]="/c /e /h /i /k /q /r /s /x /y'"
-
-		echo "[${CMD}] \$ ${EXE[$COPY]} ${PRE[$COPY]} ${SRC[$COPY]} ${DEST[$COPY]} ${POST[$COPY]}"
-		echo "--- cut here ---"
-		${EXE[$COPY]} ${PRE[$COPY]} "${SRC[$COPY]}" "${DEST[$COPY]}" ${POST[$COPY]} || {
-			echo ""
-			echo "[${CMD}] WARNING: Possible error state during ${COPY} file system mirror." ;
-			ERRORSTATE="${ERRORSTATE}+${COPY}"
+		fdd-import-sync-files --srcdir="${SRCDIR}" --destdir="${DESTDIR}" --cmd="${CMD}" || {
+			ERRORSTATE="${ERRORSTATE}+sync-files"
 		}
-		echo "--- cut here ---"
-		echo ""
 		
 		if [ ! -z "${ERRORSTATE}" ] ; then
 			ERRORSTATE=`echo ${ERRORSTATE} | sed 's/^[+]//'`
