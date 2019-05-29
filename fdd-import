@@ -98,6 +98,7 @@ until [ -z "${DESTSUFFIX}" ] ; do
 	DESTBASE="${SLUG}${NEXTDESTIDX}"
 	DESTDIR="${DESTPARENT}${DESTBASE}"
 	read -p "${DESTDIR}-" DESTSUFFIX
+	
 	if [ ! -z "${DESTSUFFIX}" ] ; then
 		LWD="${PWD}"
 
@@ -116,8 +117,7 @@ until [ -z "${DESTSUFFIX}" ] ; do
 		echo ""
 		cd "${LWD}"
 		
-		# DISK-LEVEL: chdir to verify the presence of a floppy disk
-		# in the expected drive
+		# DISK-LEVEL: chdir to verify the presence of a floppy disk in the expected drive
 		LINE="NAK"
 		while [[ "${PWD}" != "${SRCDIR}" && "${LINE}" != "OK" ]] ; do
 			echo "[$CMD] \$ cd ${SRCDIR}"
@@ -132,37 +132,41 @@ until [ -z "${DESTSUFFIX}" ] ; do
 
 		ERRORSTATE=""
 
-		# BLOCK-LEVEL: Take a disk image
+		# BLOCK-LEVEL: TAKE A DISK IMAGE THEN COMPUTE A HASH & WRITE A TIMESTAMPPED RECORD
 		DDIMG="${DESTDIR}/${DESTBASE}.${DDEXT}"
-		echo "[${CMD}] \$ dd if=${DEVDIR} of=${DDIMG}"
+
+		echo "[${CMD}] Disk Image and MD5:"
 		echo "--- cut here ---"
-		dd "if=${DEVDIR}" "of=${DDIMG}" || {
-			echo ""
-			echo "[$CMD] WARNING: Possible error state during DD disk image dump." ;
-			ERRORSTATE="${ERRORSTATE}+dd" ;
-		}
-	
-		# BLOCK-LEVEL: Hash disk image and write a record
-		fdd-import-dd-md5 --ddimg="${DDIMG}" --lwd="${LWD}" --errorstate="${ERRORSTATE}" 
+
+		fdd-import-disk-image --ddimg="${DDIMG}" --devdir="${DEVDIR}" \
+			--cmd="${CMD}" || { ERRORSTATE="${ERRORSTATE}+dd" ; }
+		fdd-import-dd-md5 --ddimg="${DDIMG}" --lwd="${LWD}" --errorstate="${ERRORSTATE}" \
+			--cmd="${CMD}" || { ERRORSTATE="${ERRORSTATE}+md5" ; }
 		
 		echo "--- cut here ---"
 		echo ""
 		
-		# FILE-LEVEL: TAKE A DOS DIR LISTING
-		fdd-import-dir-listing --dirfile="${DESTDIR}/${DESTBASE}.dir.txt" --dosfdd="${DOSFDD}" --cmd="${CMD}"
+		# FILE-LEVEL: TAKE A DOS DIR LISTING, THEN RSYNC/XCOPY EVERYTHING OVER
+		DIRFILE="${DESTDIR}/${DESTBASE}.dir.txt"
 		
-		# FILE-LEVEL: RSYNC/XCOPY EVERYTHING OVER
-		fdd-import-sync-files --srcdir="${SRCDIR}" --destdir="${DESTDIR}" --cmd="${CMD}" || {
-			ERRORSTATE="${ERRORSTATE}+sync-files"
-		}
+		echo "[${CMD}] File System Listing and Mirror:"
+		echo "--- cut here ---"
+
+		fdd-import-dir-listing --dirfile="${DIRFILE}" --dosfdd="${DOSFDD}" \
+			--cmd="${CMD}" || { ERRORSTATE="${ERRORSTATE}+dir" ; }
+		fdd-import-sync-files --srcdir="${SRCDIR}" --destdir="${DESTDIR}" \
+			--cmd="${CMD}" || { ERRORSTATE="${ERRORSTATE}+sync-files" ; }
+
+		echo "--- cut here ---"
 		
 		if [ ! -z "${ERRORSTATE}" ] ; then
 			ERRORSTATE=`echo ${ERRORSTATE} | sed 's/^[+]//'`
 			echo "[${CMD}] WARNING: Possible errors, ${ERRORSTATE}"
 		else
-			echo "[${CMD}] ALLES IN ORDNUNG: disk image, hash and file-directory rsync completed OK."
+			echo "[${CMD}] ALLES IN ORDNUNG: image, hash and mirror all OK."
 		fi
 		echo ""
 		
 	fi
+	
 done
