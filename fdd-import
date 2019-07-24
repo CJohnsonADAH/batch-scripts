@@ -107,7 +107,9 @@ until [ -z "${DESTSUFFIX}" ] ; do
 		echo "[$CMD]" `mkdir --parents --verbose ${DESTDIR}`
 
 		cd ${DESTDIR}
-
+		
+		ERRFILE="${DESTDIR}/${DESTBASE}-${DESTSUFFIX}.err.txt"
+		
 		# DISK-LEVEL: Get any text inscribed on the label
 		echo ""
 		echo "LABEL: (Press Ctrl-D when done)"
@@ -135,35 +137,42 @@ until [ -z "${DESTSUFFIX}" ] ; do
 		# BLOCK-LEVEL: TAKE A DISK IMAGE THEN COMPUTE A HASH & WRITE A TIMESTAMPPED RECORD
 		DDIMG="${DESTDIR}/${DESTBASE}.${DDEXT}"
 
-		echo "[${CMD}] Disk Image and MD5:"
-		echo "--- cut here ---"
+		echo "[${CMD}] Disk Image and MD5:" 2>&1 | tee --append "${ERRFILE}" 
+		echo "--- cut here ---" 2>&1 | tee --append "${ERRFILE}" 
 
 		fdd-import-disk-image --ddimg="${DDIMG}" --devdir="${DEVDIR}" \
-			--cmd="${CMD}" || { ERRORSTATE="${ERRORSTATE}+dd" ; }
-		fdd-import-dd-md5 --ddimg="${DDIMG}" --lwd="${LWD}" --errorstate="${ERRORSTATE}" \
-			--cmd="${CMD}" || { ERRORSTATE="${ERRORSTATE}+md5" ; }
+			--cmd="${CMD}" 2>&1 | tee --append "${ERRFILE}" 
+		[[ "${PIPESTATUS[0]}" -gt 0 ]] && ERRORSTATE="${ERRORSTATE}+dd"
 		
-		echo "--- cut here ---"
-		echo ""
+		fdd-import-dd-md5 --ddimg="${DDIMG}" --lwd="${LWD}" --errorstate="${ERRORSTATE}" \
+			--cmd="${CMD}" 2>&1 | tee --append "${ERRFILE}" 
+		[[ "${PIPESTATUS[0]}" -gt 0 ]] && ERRORSTATE="${ERRORSTATE}+md5"
+		
+		echo "--- cut here ---" 2>&1 | tee --append "${ERRFILE}" 
+		echo "" 2>&1 | tee --append "${ERRFILE}" 
 		
 		# FILE-LEVEL: TAKE A DOS DIR LISTING, THEN RSYNC/XCOPY EVERYTHING OVER
 		DIRFILE="${DESTDIR}/${DESTBASE}.dir.txt"
 		
-		echo "[${CMD}] File System Listing and Mirror:"
-		echo "--- cut here ---"
+		echo "[${CMD}] File System Listing and Mirror:" 2>&1 | tee --append "${ERRFILE}"
+		echo "--- cut here ---" 2>&1 | tee --append "${ERRFILE}"
 
 		fdd-import-dir-listing --dirfile="${DIRFILE}" --dosfdd="${DOSFDD}" \
-			--cmd="${CMD}" || { ERRORSTATE="${ERRORSTATE}+dir" ; }
-		fdd-import-sync-files --srcdir="${SRCDIR}" --destdir="${DESTDIR}" \
-			--cmd="${CMD}" || { ERRORSTATE="${ERRORSTATE}+sync-files" ; }
+			--cmd="${CMD}" 2>&1 | tee --append "${ERRFILE}"
+		[[ "${PIPESTATUS[0]}" -gt 0 ]] && ERRORSTATE="${ERRORSTATE}+dir"
 
-		echo "--- cut here ---"
+		fdd-import-sync-files --srcdir="${SRCDIR}" --destdir="${DESTDIR}" \
+			--cmd="${CMD}" 2>&1 | tee --append "${ERRFILE}"
+		[[ "${PIPESTATUS[0]}" -gt 0 ]] && ERRORSTATE="${ERRORSTATE}+sync-files"
+
+		echo "--- cut here ---" 2>&1 | tee --append "${ERRFILE}"
 		
 		if [ ! -z "${ERRORSTATE}" ] ; then
 			ERRORSTATE=`echo ${ERRORSTATE} | sed 's/^[+]//'`
-			echo "[${CMD}] WARNING: Possible errors, ${ERRORSTATE}"
+			echo "[${CMD}] WARNING: Possible errors, ${ERRORSTATE}" 2>&1 | tee --append "${ERRFILE}" 1>&2
 		else
-			echo "[${CMD}] ALLES IN ORDNUNG: image, hash and mirror all OK."
+			echo "[${CMD}] ALLES IN ORDNUNG: image, hash and mirror all OK." 2>&1 | tee --append "${ERRFILE}"
+			rm "${ERRFILE}"
 		fi
 		echo ""
 		
