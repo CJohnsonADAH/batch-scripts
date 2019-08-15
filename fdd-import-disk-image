@@ -45,14 +45,28 @@ fi
 
 EXITCODE=0
 
-	echo "[${CMD}] \$ dd if=${DEVDIR} of=${DDIMG}"
+	DD_PARAMS="sync"
+	
+	echo "[${CMD}] \$ dd if=${DEVDIR} of=${DDIMG} conv=${DD_PARAMS}"
 
-	dd "if=${DEVDIR}" "of=${DDIMG}" || {
-		EXITCODE=$?
+	DDOUT=$(mktemp)
+	dd "if=${DEVDIR}" "of=${DDIMG}" "conv=${DD_PARAMS}" 2>&1 | tee "${DDOUT}"
+	EXITCODE="${PIPESTATUS[0]}"
+	
+	grep "error" "${DDOUT}" > /dev/null
+	ERRORGREP="$?"
+
+	if [[ "${EXITCODE}" -gt 0 ]] ; then
 		echo ""
-		echo "[$CMD] WARNING: Possible error state during DD disk image dump." ;
-	}
+		echo "[$CMD] WARNING: Possible error state during DD disk image dump." 1>&2
+	elif [[ "${ERRORGREP}" -eq 0 ]] ; then
+		EXITCODE=1
+		echo ""
+		echo "[$CMD] WARNING: Possible error state during DD disk image dump." 1>&2
+	fi
 
+	rm ${DDOUT}
+	
 exit $EXITCODE
 
 		
