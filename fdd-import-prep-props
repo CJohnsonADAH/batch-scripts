@@ -1,0 +1,56 @@
+#!/bin/bash
+#
+# fdd-import-prep-props: a bash shell script to help automate the procedure of importing
+# content from a set of diskettes or optical discs into a repository on a stable medium.
+# This script creates a properties file called props.tsv which helps set properties for
+# the fdd-import script.
+#
+# @version 2019.0816
+
+SCRIPTPATH=$(which "$0")
+SCRIPTNAME=$(basename "${SCRIPTPATH}")
+SCRIPTDIR=$(dirname "${SCRIPTPATH}")
+PATH="${SCRIPTDIR}:${PATH}"
+
+PROPSFILE="./props.tsv"
+if [[ -r ${PROPSFILE} ]] ; then
+
+	echo "[${SCRIPTNAME}] props.tsv file already exists" 1>&2
+	exit 1
+
+else
+
+	declare -A _PARAMS
+	read -p "Disk Drive letter (A:/B:/H:/etc.): " _PARAMS[DRIVELETTER]
+	_PARAMS[DEVNODE]=$(fdd-get-drive-device-node "${_PARAMS[DRIVELETTER]}")
+
+	if [[ ! -z "${_PARAMS[DEVNODE]}" ]] ; then
+
+		_PARAMS[DRIVE]=$(echo "${_PARAMS[DEVNODE]}" | sed --regexp-extended 's/^\/dev\///')
+
+		read -n 1 -p "(F)loppy Drive or (O)ptical Disc? (F/O) " _PARAMS[MEDIATYPE]
+		_PARAMS[MEDIATYPE]=$(echo "${_PARAMS[MEDIATYPE]}" | tr '[:lower:]' '[:upper:]')
+		
+		case "${_PARAMS[MEDIATYPE]}" in
+			"O")
+				_PARAMS[EXT]="iso"
+				_PARAMS[CONV]="sync"
+				;;
+			*)
+				_PARAMS[EXT]="dd"
+				_PARAMS[CONV]="noerror,notrunc,sync"
+				;;
+		esac
+		
+		_PARAMS[DESTPARENT]=$(cygpath --absolute .)
+		printf "\n"
+		
+		read -p "Image Folder Slug/Prefix: " _PARAMS[SLUG]
+		
+		printf "SLUG\t%s\n" "${_PARAMS[SLUG]}" > ${PROPSFILE}
+		printf "DESTPARENT\t%s\n" "${_PARAMS[DESTPARENT]}" >> ${PROPSFILE}
+		printf "DRIVE\t%s\n" "${_PARAMS[DRIVE]}" >> ${PROPSFILE}
+		printf "EXT\t%s\n" "${_PARAMS[EXT]}" >> ${PROPSFILE}
+		printf "CONV\t%s\n" "${_PARAMS[CONV]}" >> ${PROPSFILE}
+	fi
+fi

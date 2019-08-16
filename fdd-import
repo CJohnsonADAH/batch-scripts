@@ -21,6 +21,8 @@ DRIVENUMBER=0
 
 DDEXT="dd"
 
+DD_PARAMS="sync"
+
 # Let's open up the props.tsv file
 PROPSFILE="./props.tsv"
 if [[ -r "${PROPSFILE}" ]] ; then
@@ -45,6 +47,9 @@ if [[ -r "${PROPSFILE}" ]] ; then
 			"EXT")
 				DDEXT="${FIELDS[1]}"
 				;;
+			"CONV")
+				DD_PARAMS="${FIELDS[1]}"
+				;;
 			*)
 				;;
 		esac
@@ -52,7 +57,8 @@ if [[ -r "${PROPSFILE}" ]] ; then
 	
 else
 	echo "[$CMD] required: create a props.tsv with PREFIX and DESTPARENT set"
-	exit
+	fdd-import-prep-props && $0 "$@"
+	exit $?
 fi
 
 DESTPARENT=`cygpath --unix "${DESTPARENT}" | sed -e 's/\/*$//g'`
@@ -141,7 +147,7 @@ until [ -z "${DESTSUFFIX}" ] ; do
 		echo "--- cut here ---" 2>&1 | tee --append "${ERRFILE}" 
 
 		fdd-import-disk-image --ddimg="${DDIMG}" --devdir="${DEVDIR}" \
-			--cmd="${CMD}" 2>&1 | tee --append "${ERRFILE}" 
+			--cmd="${CMD}" --dd_params="${DD_PARAMS}" 2>&1 | tee --append "${ERRFILE}" 
 		[[ "${PIPESTATUS[0]}" -gt 0 ]] && ERRORSTATE="${ERRORSTATE}+dd"
 		
 		fdd-import-dd-md5 --ddimg="${DDIMG}" --lwd="${LWD}" --errorstate="${ERRORSTATE}" \

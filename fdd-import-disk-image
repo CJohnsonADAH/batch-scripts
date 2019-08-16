@@ -19,14 +19,22 @@
 # @return int 0 if successful, non-zero error code if sync utility failed
 #
 # created: 29-May-2019 (extracted from fdd-import)
-# revision: 29-May-2019
+# revision: 16-Aug-2019
+
+SCRIPTPATH=$(which $0)
+SCRIPTNAME=$(basename "${SCRIPTPATH}")
+SCRIPTDIR=$(dirname "${SCRIPTPATH}")
+PATH="${SCRIPTDIR}:${PATH}"
+
+# Default settings can be overridden
+DD_PARAMS="sync"
+CMD=${SCRIPTNAME}
 
 # loop through command line arguments looking for named or positional parameters
 until [[ -z "$1" ]] ; do
-	if [[ "$1" =~ ^-{0,2}([a-zA-Z_0-9][^=]*)\s*=\s*(.*)\s*$ ]] ; then
+	if [[ "$1" =~ ^-{0,2}([a-zA-Z_0-9][^=]*)=(.*)$ ]] ; then
 		KEY=$(echo "${BASH_REMATCH[1]}" | tr [:lower:] [:upper:])
 		VALUE="${BASH_REMATCH[2]}"
-
 		export "${KEY}"="${VALUE}"
 	elif [[ -z "${DDIMG}" ]] ; then
 		DDIMG="$1"
@@ -40,12 +48,10 @@ done
 
 # if nobody else called us, then use our own slug in diagnostic messages
 if [[ -z "${CMD}" ]] ; then
-	CMD=`basename $0`
+	CMD=$(basename $0)
 fi
 
 EXITCODE=0
-
-	DD_PARAMS="sync"
 	
 	echo "[${CMD}] \$ dd if=${DEVDIR} of=${DDIMG} conv=${DD_PARAMS}"
 

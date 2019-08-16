@@ -1,0 +1,32 @@
+#!/bin/bash
+
+SCRIPTPATH=$(which $0)
+SCRIPTNAME=$(basename ${SCRIPTPATH})
+SCRIPTDIR=$(dirname ${SCRIPTPATH})
+
+DRIVESTXT=$(mktemp)
+
+for F in /dev/* ; do
+	DRIVELETTER=$(cygpath --windows ${F} | sed 's/^\\\\.\\//')
+	if [[ "${DRIVELETTER}" =~ ^[A-Za-z]:$ ]] ; then
+		CYGPATH=$(cygpath --unix ${DRIVELETTER})
+	else
+		CYGPATH="${DRIVELETTER}"
+	fi
+	printf "%s\t%s\t%s\n" "${DRIVELETTER}" "$F" "${CYGPATH}"
+done > "${DRIVESTXT}"
+
+EXITCODE=0
+if [[ ! -z "$1" ]] ; then
+	cat "${DRIVESTXT}" | grep --perl-regexp "^$1\t" | head --lines=1 | cut --field=2
+	EXITCODE="${PIPESTATUS[1]}"
+	if [[ "${EXITCODE}" -gt 0 ]] ; then
+		echo "[${SCRIPTNAME}] Drive Not Found: $1" 1>&2
+	fi
+else 
+	cat "${DRIVESTXT}"
+	EXITCODE=254
+fi
+
+rm "${DRIVESTXT}"
+exit "${EXITCODE}"
