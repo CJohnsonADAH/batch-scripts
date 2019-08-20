@@ -27,6 +27,11 @@
 # created: 29-May-2019 (extracted from fdd-import)
 # revision: 29-May-2019
 
+SCRIPTPATH=$(which $0)
+if [[ -L "${SCRIPTPATH}" ]] ; then
+	SCRIPTPATH=$(readlink -f "${SCRIPTPATH}")
+fi
+
 # loop through command line arguments looking for named or positional parameters
 until [[ -z "$1" ]] ; do
 	if [[ "$1" =~ ^-{0,2}([a-zA-Z_0-9][^=]*)\s*=\s*(.*)\s*$ ]] ; then

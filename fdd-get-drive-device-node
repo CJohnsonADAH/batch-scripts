@@ -1,6 +1,9 @@
 #!/bin/bash
 
 SCRIPTPATH=$(which $0)
+if [[ -L "${SCRIPTPATH}" ]] ; then
+	SCRIPTPATH=$(readlink -f "${SCRIPTPATH}")
+fi
 SCRIPTNAME=$(basename ${SCRIPTPATH})
 SCRIPTDIR=$(dirname ${SCRIPTPATH})
 

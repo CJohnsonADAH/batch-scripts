@@ -22,6 +22,9 @@
 # revision: 16-Aug-2019
 
 SCRIPTPATH=$(which $0)
+if [[ -L "${SCRIPTPATH}" ]] ; then
+	SCRIPTPATH=$(readlink -f "${SCRIPTPATH}")
+fi
 SCRIPTNAME=$(basename "${SCRIPTPATH}")
 SCRIPTDIR=$(dirname "${SCRIPTPATH}")
 PATH="${SCRIPTDIR}:${PATH}"

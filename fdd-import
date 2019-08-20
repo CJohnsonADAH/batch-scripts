@@ -9,9 +9,14 @@
 # adapted:	28-Mar-2019
 # revision:	28-May-2019
 
-CMD=$(basename $0)
+SCRIPTPATH=$(which $0)
+if [[ -L "${SCRIPTPATH}" ]] ; then
+	SCRIPTPATH=$(readlink -f "${SCRIPTPATH}")
+fi
 
-BINDIR=$(dirname $0)
+CMD=$(basename "${SCRIPTPATH}")
+
+BINDIR=$(dirname "${SCRIPTPATH}")
 PATH=${BINDIR}:${PATH}
 
 BASHENVIRONMENT=""
@@ -57,7 +62,7 @@ if [[ -r "${PROPSFILE}" ]] ; then
 	
 else
 	echo "[$CMD] required: create a props.tsv with PREFIX and DESTPARENT set"
-	fdd-import-prep-props && $0 "$@"
+	fdd-import-prep-props && ${SCRIPTPATH} "$@"
 	exit $?
 fi
 
