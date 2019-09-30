@@ -110,17 +110,17 @@ elif [[ -d "/c" ]] ; then
 	SRCDIR="/${DRIVELETTER}"
 	DOSFDD="${DRIVELETTER}:"
 else
-	echo "[$CMD] Cannot locate Unix filesystem path for DOS drive ${DRIVELETTER}:"
+	echo "[${CMD}] Cannot locate Unix filesystem path for DOS drive ${DRIVELETTER}:" 1>2
 	exit
 fi
 
 DESTSUFFIX=foo
 until [ -z "${DESTSUFFIX}" ] ; do
 
-	LASTDESTDIR=`find ${DESTPARENT} -maxdepth 1 -type d -name "${SLUG}[0-9]*" | sort | tail -n 1`
+	LASTDESTDIR=$(find ${DESTPARENT} -maxdepth 1 -type d -name "${SLUG}[0-9]*" | sort | tail -n 1)
 
 	if [ ! -z "${LASTDESTDIR}" ] ; then
-		echo $LASTDESTDIR
+		echo "[${CMD}] last volume:" "${LASTDESTDIR}"
 		LASTDESTIDX=`basename $LASTDESTDIR | sed --regexp-extended "s/^${SLUG}([0-9]+).*$/\1/"`
 	else
 		LASTDESTIDX=0
@@ -129,7 +129,8 @@ until [ -z "${DESTSUFFIX}" ] ; do
 	NEXTDESTIDX=`printf "%03d" $(( 10#${LASTDESTIDX} + 1 ))`
 	DESTBASE="${SLUG}${NEXTDESTIDX}"
 	DESTDIR="${DESTPARENT}${DESTBASE}"
-	read -p "${DESTDIR}-" DESTSUFFIX
+
+	read -p "[${CMD}] next volume: ${DESTDIR}-" DESTSUFFIX
 	
 	if [ ! -z "${DESTSUFFIX}" ] ; then
 		LWD="${PWD}"
