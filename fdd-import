@@ -6,6 +6,8 @@
 # stores a directory listing in a test file, and uses rsync to take a snapshot of the
 # contents at a file level.
 #
+# @version 2019.0930
+#
 # adapted:	28-Mar-2019
 # revision:	30-Sep-2019
 
@@ -31,7 +33,13 @@ declare -a _ARGV
 do_parse_command_line "${CMDLINETEXT}"
 rm "${CMDLINETEXT}"
 
-if [[ ! -z "${_PARAM[help]}" ]] ; then
+if [[ ! -z "${_PARAM[version]}" ]] ; then
+	VERSION=$(grep "^# @version" "${SCRIPTPATH}" | head --lines=1 | cut --only-delimited --fields=3- --delimiter=" ")
+	echo "${CMD} version ${VERSION}"
+	EXITCODE=0
+	exit
+	
+elif [[ ! -z "${_PARAM[help]}" ]] ; then
 	echo "Usage: fdd-import [--verbose|--quiet]"
 	echo ""
 	echo "Capture and document the contents of a series of removable media volumes,"
