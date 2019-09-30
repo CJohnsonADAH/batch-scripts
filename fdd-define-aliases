@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# fdd-define-aliases: some basic subroutines used in a lot of scripts
+#
+# @version 2019.0930
+
+function do_parse_command_line() {
+	shopt -s lastpipe
+	
+	cat "$@" | while IFS="" read -r SWITCH ; do
+
+		if [[ "${SWITCH}" =~ ^--([A-Za-z_0-9][^=]*)(=\s*(.*)\s*)?$ ]] ; then
+			KEY="${BASH_REMATCH[1]}"
+			VALUE="${BASH_REMATCH[3]}"
+			if [[ -z "${BASH_REMATCH[2]}" ]] ; then
+				VALUE="$KEY"
+			fi
+			_PARAM[$KEY]="${VALUE}"
+			_LINESWITCH[$KEY]="${SWITCH}"
+			
+		elif [[ ! -z "${SWITCH}" ]] ; then
+			_ARGV+=("${SWITCH}")
+			
+		fi
+		
+	done
+}

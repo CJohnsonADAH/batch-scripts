@@ -7,7 +7,7 @@
 # contents at a file level.
 #
 # adapted:	28-Mar-2019
-# revision:	28-May-2019
+# revision:	30-Sep-2019
 
 SCRIPTPATH=$(which $0)
 if [[ -L "${SCRIPTPATH}" ]] ; then
@@ -18,6 +18,27 @@ CMD=$(basename "${SCRIPTPATH}")
 
 BINDIR=$(dirname "${SCRIPTPATH}")
 PATH=${BINDIR}:${PATH}
+
+source "${BINDIR}/fdd-define-aliases"
+
+CMDLINETEXT=$(mktemp)
+while [[ $# -gt 0 ]] ; do
+	echo "$1" >> "${CMDLINETEXT}"
+	shift
+done
+declare -A _PARAM
+declare -a _ARGV
+do_parse_command_line "${CMDLINETEXT}"
+rm "${CMDLINETEXT}"
+
+if [[ ! -z "${_PARAM[help]}" ]] ; then
+	echo "Usage: fdd-import [--verbose|--quiet]"
+	echo ""
+	echo "Capture and document the contents of a series of removable media volumes,"
+	echo "such as floppy diskettes or optical media discs."
+	echo ""
+	exit
+fi
 
 BASHENVIRONMENT=""
 DOSENVIRONMENT=""
