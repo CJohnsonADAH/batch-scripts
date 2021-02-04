@@ -6,10 +6,10 @@
 # stores a directory listing in a test file, and uses rsync to take a snapshot of the
 # contents at a file level.
 #
-# @version 2019.0930
+# @version 2021.0204
 #
 # adapted:	28-Mar-2019
-# revision:	30-Sep-2019
+# revision:	4-Feb-2021
 
 SCRIPTPATH=$(which "$0")
 if [[ -L "${SCRIPTPATH}" ]] ; then
