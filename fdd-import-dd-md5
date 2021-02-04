@@ -27,7 +27,7 @@
 # created: 29-May-2019 (extracted from fdd-import)
 # revision: 29-May-2019
 
-SCRIPTPATH=$(which $0)
+SCRIPTPATH=$(which "$0")
 if [[ -L "${SCRIPTPATH}" ]] ; then
 	SCRIPTPATH=$(readlink -f "${SCRIPTPATH}")
 fi
@@ -56,10 +56,10 @@ fi
 
 EXITCODE=0
 
-	DDFILE=`basename ${DDIMG}`
-	DDDIR=`dirname ${DDIMG}`
+	DDFILE=`basename "${DDIMG}"`
+	DDDIR=`dirname "${DDIMG}"`
 	
-	cd ${DDDIR}
+	cd "${DDDIR}"
 		
 	export CERTUTIL=`cygpath "${WINDIR}\system32\certutil.exe"` ; EXITCODE=$?
 	echo "$ ${CERTUTIL} -hashfile ${DDFILE} md5 | grep -P '^\s*([0-9a-f]{2}\s*)+$' | sed -E 's/\s+//g'" 

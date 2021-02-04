@@ -7,7 +7,7 @@
 #
 # @version 2019.0816
 
-SCRIPTPATH=$(which $0)
+SCRIPTPATH=$(which "$0")
 if [[ -L "${SCRIPTPATH}" ]] ; then
 	SCRIPTPATH=$(readlink -f "${SCRIPTPATH}")
 fi

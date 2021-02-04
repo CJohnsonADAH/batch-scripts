@@ -11,7 +11,7 @@
 # adapted:	28-Mar-2019
 # revision:	30-Sep-2019
 
-SCRIPTPATH=$(which $0)
+SCRIPTPATH=$(which "$0")
 if [[ -L "${SCRIPTPATH}" ]] ; then
 	SCRIPTPATH=$(readlink -f "${SCRIPTPATH}")
 fi
@@ -91,7 +91,7 @@ if [[ -r "${PROPSFILE}" ]] ; then
 	
 else
 	echo "[$CMD] required: create a props.tsv with PREFIX and DESTPARENT set"
-	fdd-import-prep-props && ${SCRIPTPATH} "$@"
+	fdd-import-prep-props && "${SCRIPTPATH}" "$@"
 	exit $?
 fi
 
@@ -125,11 +125,11 @@ fi
 DESTSUFFIX=foo
 until [ -z "${DESTSUFFIX}" ] ; do
 
-	LASTDESTDIR=$(find ${DESTPARENT} -maxdepth 1 -type d -name "${SLUG}[0-9]*" | sort | tail -n 1)
+	LASTDESTDIR=$(find "${DESTPARENT}" -maxdepth 1 -type d -name "${SLUG}[0-9]*" | sort | tail -n 1)
 
 	if [ ! -z "${LASTDESTDIR}" ] ; then
 		echo "[${CMD}] last volume:" "${LASTDESTDIR}"
-		LASTDESTIDX=`basename $LASTDESTDIR | sed --regexp-extended "s/^${SLUG}([0-9]+).*$/\1/"`
+		LASTDESTIDX=`basename "${LASTDESTDIR}" | sed --regexp-extended "s/^${SLUG}([0-9]+).*$/\1/"`
 	else
 		LASTDESTIDX=0
 	fi
@@ -143,11 +143,11 @@ until [ -z "${DESTSUFFIX}" ] ; do
 	if [ ! -z "${DESTSUFFIX}" ] ; then
 		LWD="${PWD}"
 
-		DESTDIR=${DESTDIR}-${DESTSUFFIX}
+		DESTDIR="${DESTDIR}-${DESTSUFFIX}"
 
-		echo "[$CMD]" `mkdir --parents --verbose ${DESTDIR}`
+		echo "[$CMD]" $( mkdir --parents --verbose "${DESTDIR}" )
 
-		cd ${DESTDIR}
+		cd "${DESTDIR}"
 		
 		ERRFILE="${DESTDIR}/${DESTBASE}-${DESTSUFFIX}.err.txt"
 		
@@ -163,7 +163,7 @@ until [ -z "${DESTSUFFIX}" ] ; do
 		# DISK-LEVEL: chdir to verify the presence of a floppy disk in the expected drive
 		LINE="NAK"
 		while [[ "${PWD}" != "${SRCDIR}" && "${LINE}" != "OK" ]] ; do
-			echo "[$CMD] \$ cd ${SRCDIR}"
+			echo "[$CMD] \$ cd '${SRCDIR}'"
 			cd "${SRCDIR}" || {
 				export LINE ;
 				echo "Please insert the floppy and press ENTER." ;
@@ -203,7 +203,7 @@ until [ -z "${DESTSUFFIX}" ] ; do
 		[[ "${PIPESTATUS[0]}" -gt 0 ]] && ERRORSTATE="${ERRORSTATE}+dir"
 
 		fdd-import-sync-files --srcdir="${SRCDIR}" --destdir="${DESTDIR}" \
-			--cmd="${CMD}" 2>&1 | tee --append "${ERRFILE}"
+			--cmd="${CMD}" --driveletter="${DRIVELETTER}" 2>&1 | tee --append "${ERRFILE}"
 		[[ "${PIPESTATUS[0]}" -gt 0 ]] && ERRORSTATE="${ERRORSTATE}+sync-files"
 
 		echo "--- cut here ---" 2>&1 | tee --append "${ERRFILE}"

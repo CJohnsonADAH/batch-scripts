@@ -21,7 +21,7 @@
 # created: 29-May-2019 (extracted from fdd-import)
 # revision: 29-May-2019
 
-SCRIPTPATH=$(which $0)
+SCRIPTPATH=$(which "$0")
 if [[ -L "${SCRIPTPATH}" ]] ; then
 	SCRIPTPATH=$(readlink -f "${SCRIPTPATH}")
 fi

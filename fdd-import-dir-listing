@@ -22,7 +22,7 @@
 # created: 29-May-2019 (extracted from fdd-import)
 # revision: 29-May-2019
 
-SCRIPTPATH=$(which $0)
+SCRIPTPATH=$(which "$0")
 if [[ -L "${SCRIPTPATH}" ]] ; then
 	SCRIPTPATH=$(readlink -f "${SCRIPTPATH}")
 fi
@@ -48,7 +48,7 @@ done
 
 # if nobody else called us, then use this script's name in diagnostics
 if [[ -z "${CMD}" ]] ; then
-	CMD=$(basename ${SCRIPTPATH})
+	CMD=$(basename "${SCRIPTPATH}")
 fi
 
 if [[ -z "${DOSSHELL}" ]] ; then
@@ -57,8 +57,8 @@ fi
 
 EXITCODE=0
 
-	echo "[${CMD}] \$ cmd /c dir /A /S ${DOSFDD} > ${DIRFILE}"
-	${DOSSHELL} "dir /A /S ${DOSFDD} " > ${DIRFILE}
+	echo "[${CMD}] \$ cmd /c dir /A /S ${DOSFDD} > '${DIRFILE}'"
+	${DOSSHELL} "dir /A /S ${DOSFDD} " > "${DIRFILE}"
 		
 exit $EXITCODE
 

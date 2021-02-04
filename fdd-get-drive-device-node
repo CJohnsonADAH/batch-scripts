@@ -1,18 +1,18 @@
 #!/bin/bash
 
-SCRIPTPATH=$(which $0)
+SCRIPTPATH=$(which "$0")
 if [[ -L "${SCRIPTPATH}" ]] ; then
 	SCRIPTPATH=$(readlink -f "${SCRIPTPATH}")
 fi
-SCRIPTNAME=$(basename ${SCRIPTPATH})
-SCRIPTDIR=$(dirname ${SCRIPTPATH})
+SCRIPTNAME=$(basename "${SCRIPTPATH}")
+SCRIPTDIR=$(dirname "${SCRIPTPATH}")
 
 DRIVESTXT=$(mktemp)
 
 for F in /dev/* ; do
 	DRIVELETTER=$(cygpath --windows ${F} | sed 's/^\\\\.\\//')
 	if [[ "${DRIVELETTER}" =~ ^[A-Za-z]:$ ]] ; then
-		CYGPATH=$(cygpath --unix ${DRIVELETTER})
+		CYGPATH=$(cygpath --unix "${DRIVELETTER}")
 	else
 		CYGPATH="${DRIVELETTER}"
 	fi
