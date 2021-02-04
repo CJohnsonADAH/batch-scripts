@@ -4,11 +4,12 @@
 # system structure of a floppy diskette, CD-ROM or similar
 # removable media into a repository on a stable medium. This will
 # usually be called by a higher-level script, for example
-# fdd-import. It uses rsync if that is available in the shell
-# environment; if looks for the DOS/Windows xcopy utility if rsync
-# is not available.
+# fdd-import. It uses Windows ROBOCOPY if that is available in the
+# shell environment, it looks for rsync if ROBOCOPY is not available;
+# finally, it looks for the DOS/Windows xcopy utility if neither
+# ROBOCOPY nor rsync is available.
 #
-# @uses rsync|xcopy.exe
+# @uses robocopy.exe|rsync|xcopy.exe
 # @uses cmd.exe
 # @uses cygpath
 # @uses tr
@@ -45,18 +46,26 @@ done
 
 # if nobody else called us, then use our own slug in diagnostic messages
 if [[ -z "${CMD}" ]] ; then
-	CMD=`basename ${SCRIPTPATH}`
+	CMD=`basename "${SCRIPTPATH}"`
 fi
 
 EXITCODE=0
 
-export COPY=rsync ; ( which "${COPY}" 2>&1 > /dev/null ) || COPY=xcopy
+export COPY=robocopy ;
+( which "${COPY}" 2>&1 > /dev/null ) || COPY=rsync
+( which "${COPY}" 2>&1 > /dev/null ) || COPY=xcopy
 
 declare -A EXE
 declare -A PRE
 declare -A SRC
 declare -A DEST
 declare -A POST
+
+EXE[robocopy]="robocopy.exe"
+PRE[robocopy]=""
+SRC[robocopy]="$( cygpath --windows "${SRCDIR}" )"
+DEST[robocopy]="$( cygpath --windows "${DESTDIR}" )\\${DRIVELETTER}"
+POST[robocopy]="/e /copy:DAT"
 
 EXE[rsync]="rsync"
 PRE[rsync]="--archive --itemize-changes"
@@ -66,8 +75,8 @@ POST[rsync]=""
 
 EXE[xcopy]="cmd /c 'xcopy.exe"
 PRE[xcopy]=""
-SRC[xcopy]=`cygpath --windows "${SRCDIR}"`
-DEST[xcopy]=`cygpath --windows "${DESTDIR}"`
+SRC[xcopy]="$( cygpath --windows "${SRCDIR}" )"
+DEST[xcopy]="$( cygpath --windows "${DESTDIR}" )\\${DRIVELETTER}"
 POST[xcopy]="/c /e /h /i /k /q /r /s /x /y'"
 
 echo "[${CMD}] \$ ${EXE[$COPY]} ${PRE[$COPY]} ${SRC[$COPY]} ${DEST[$COPY]} ${POST[$COPY]}"
