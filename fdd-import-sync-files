@@ -69,22 +69,22 @@ declare -A OKEXIT
 
 EXE[robocopy]="robocopy.exe"
 PRE[robocopy]=""
-SRC[robocopy]="$( cygpath --windows "${SRCDIR}" )"
-DEST[robocopy]="$( cygpath --windows "${DESTDIR}" )\\${DRIVELETTER}"
+SRC[robocopy]="$( ${GET_PATH} -w "${SRCDIR}" )"
+DEST[robocopy]="$( ${GET_PATH} -w "${DESTDIR}" )\\${DRIVELETTER}"
 POST[robocopy]="/e /copy:DAT"
 OKEXIT[robocopy]=1
 
 EXE[rsync]="rsync"
 PRE[rsync]="--archive --itemize-changes"
-SRC[rsync]="${SRCDIR}"
-DEST[rsync]="${DESTDIR}"
+SRC[rsync]="$( ${GET_PATH} -u "${SRCDIR}" )"
+DEST[rsync]="$( ${GET_PATH} -u "${DESTDIR}" )"
 POST[rsync]=""
 OKEXIT[rsync]=0
 
 EXE[xcopy]="cmd /c 'xcopy.exe"
 PRE[xcopy]=""
-SRC[xcopy]="$( cygpath --windows "${SRCDIR}" )"
-DEST[xcopy]="$( cygpath --windows "${DESTDIR}" )\\${DRIVELETTER}"
+SRC[xcopy]="$( ${GET_PATH} -w "${SRCDIR}" )"
+DEST[xcopy]="$( ${GET_PATH} -w "${DESTDIR}" )\\${DRIVELETTER}"
 POST[xcopy]="/c /e /h /i /k /q /r /s /x /y'"
 OKEXIT[xcopy]=0
 
