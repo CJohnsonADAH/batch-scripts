@@ -37,7 +37,7 @@ else
 		case "${_PARAMS[MEDIATYPE]}" in
 			"O")
 				_PARAMS[EXT]="iso"
-				_PARAMS[CONV]="sync"
+				_PARAMS[CONV]="noerror,sync"
 				;;
 			*)
 				_PARAMS[EXT]="dd"
