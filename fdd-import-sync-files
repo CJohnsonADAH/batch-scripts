@@ -20,7 +20,9 @@
 # @return int 0 if successful, non-zero error code if sync utility failed
 #
 # created: 29-May-2019 (extracted from fdd-import)
-# revision: 29-May-2019
+# revision: 5-Feb-2021
+#
+# @version 2021.0205
 
 SCRIPTPATH=$(which "$0")
 if [[ -L "${SCRIPTPATH}" ]] ; then
@@ -51,6 +53,9 @@ fi
 
 EXITCODE=0
 
+export GET_PATH=cygpath
+( which "${GET_PATH}" 2>&1 >/dev/null ) || GET_PATH=wslpath
+
 export COPY=robocopy ;
 ( which "${COPY}" 2>&1 > /dev/null ) || COPY=rsync
 ( which "${COPY}" 2>&1 > /dev/null ) || COPY=xcopy
@@ -60,32 +65,44 @@ declare -A PRE
 declare -A SRC
 declare -A DEST
 declare -A POST
+declare -A OKEXIT
 
 EXE[robocopy]="robocopy.exe"
 PRE[robocopy]=""
 SRC[robocopy]="$( cygpath --windows "${SRCDIR}" )"
 DEST[robocopy]="$( cygpath --windows "${DESTDIR}" )\\${DRIVELETTER}"
 POST[robocopy]="/e /copy:DAT"
+OKEXIT[robocopy]=1
 
 EXE[rsync]="rsync"
 PRE[rsync]="--archive --itemize-changes"
 SRC[rsync]="${SRCDIR}"
 DEST[rsync]="${DESTDIR}"
 POST[rsync]=""
+OKEXIT[rsync]=0
 
 EXE[xcopy]="cmd /c 'xcopy.exe"
 PRE[xcopy]=""
 SRC[xcopy]="$( cygpath --windows "${SRCDIR}" )"
 DEST[xcopy]="$( cygpath --windows "${DESTDIR}" )\\${DRIVELETTER}"
 POST[xcopy]="/c /e /h /i /k /q /r /s /x /y'"
+OKEXIT[xcopy]=0
 
 echo "[${CMD}] \$ ${EXE[$COPY]} ${PRE[$COPY]} ${SRC[$COPY]} ${DEST[$COPY]} ${POST[$COPY]}"
 echo "--- cut here ---"
 ${EXE[$COPY]} ${PRE[$COPY]} "${SRC[$COPY]}" "${DEST[$COPY]}" ${POST[$COPY]} || {
 	EXITCODE=$?
+	
+	if [ "${EXITCODE}" -gt "${OKEXIT[${COPY}]}" ] ; then
+		
+		echo ""
+		echo "[${CMD}] WARNING: Possible error state during ${COPY} file system mirror. Exit code: ${EXITCODE}" ;
 
-	echo ""
-	echo "[${CMD}] WARNING: Possible error state during ${COPY} file system mirror." ;
+	else
+
+		EXITCODE=0 # Nevermind! It's OK!
+		
+	fi
 }
 echo "--- cut here ---"
 echo ""
