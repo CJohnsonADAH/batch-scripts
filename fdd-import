@@ -6,10 +6,10 @@
 # stores a directory listing in a test file, and uses rsync to take a snapshot of the
 # contents at a file level.
 #
-# @version 2021.0205
+# @version 2021.0210
 #
 # adapted:	28-Mar-2019
-# revision:	5-Feb-2021
+# revision:	10-Feb-2021
 
 SCRIPTPATH=$(which "$0")
 if [[ -L "${SCRIPTPATH}" ]] ; then
@@ -46,6 +46,67 @@ elif [[ ! -z "${_PARAM[help]}" ]] ; then
 	echo "such as floppy diskettes or optical media discs."
 	echo ""
 	exit
+
+elif [[ ! -z "${_PARAM[setup]}" ]] ; then
+	echo "Usage: fdd-import [--verbose|--quiet]"
+	echo ""
+	echo "Setting up local environment for convenient use."
+	echo ""
+	
+	printf "* Checking ~/bin directory... "
+	if [[ ! -e "${HOME}/bin" ]] ; then
+		mkdir --verbose "${HOME}/bin"
+	else
+		printf "\t(OK)\n"
+	fi
+	
+	printf "* Checking ~/bin/fdd-import alias... "
+	if [[ ! -x "${HOME}/bin/fdd-import" ]] ; then
+		ln --symbolic --verbose "${SCRIPTPATH}" "${HOME}/bin/fdd-import"
+	else
+		printf "\t(OK)\n"
+	fi
+	
+	printf '* Checking ${PATH} for ~/bin ... '
+	if ( printf "%s" "${PATH}" | tr ':' "\n" | grep -F "${HOME}/bin" > /dev/null ) ; then
+		printf "\t(OK)\n"
+		printf "\n---\nPATH='%s'\n---\n" "${PATH}"
+	else 
+		printf "\t[NOT FOUND]\n"
+		printf 'Adding ~/bin to ${PATH} in ~/.bash_profile ...'
+		echo 'PATH="${HOME}/bin:${PATH}"' >> "${HOME}/.bash_profile" && printf "\t(OK)\n"
+	fi
+
+	printf '* Checking optical disc drive ... '
+	DD_OUTPUT=$( dd if=/dev/scd0 of=/dev/null count=1 2>&1 )
+	if [ $? -gt 0 ] ; then
+		printf "[PROBLEM?]\n" 
+	else
+		printf "\t(OK)\n" 
+	fi
+	
+	printf "\n---\n%s\n---\n" "${DD_OUTPUT}"
+	
+	printf '* Checking installed version ... '
+	PATH="${HOME}/bin:${PATH}"
+	SCRIPT_OUTPUT=$( fdd-import --version )
+	if [ $? -gt 0 ] ; then
+		printf "[PROBLEM?]\n" 
+	else
+		printf "\t(OK)\n" 
+	fi
+
+	printf "\n---\n%s\n---\n" "${SCRIPT_OUTPUT}"
+	
+	echo ""
+	printf "[${CMD}] When this script finishes, copy all the output and paste into a text file. Then:\n\n"
+	printf "  exit\n"
+	printf "  \t[... then restart Cygwin]\n\n"
+	printf "  fdd --version\n"
+	printf "  \t[... the output should be identical to the installed version above.]\n"
+
+	exit 0
+	
 fi
 
 BASHENVIRONMENT=""
