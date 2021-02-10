@@ -57,20 +57,20 @@ elif [[ ! -z "${_PARAM[setup]}" ]] ; then
 	if [[ ! -e "${HOME}/bin" ]] ; then
 		mkdir --verbose "${HOME}/bin"
 	else
-		printf "\t(OK)\n"
+		printf "\t(ok)\n"
 	fi
 	
 	printf "* Checking ~/bin/fdd-import alias... "
 	if [[ ! -x "${HOME}/bin/fdd-import" ]] ; then
 		ln --symbolic --verbose "${SCRIPTPATH}" "${HOME}/bin/fdd-import"
 	else
-		printf "\t(OK)\n"
+		printf "\t(ok)\n"
 	fi
 	
 	printf '* Checking ${PATH} for ~/bin ... '
 	if ( printf "%s" "${PATH}" | tr ':' "\n" | grep -F "${HOME}/bin" > /dev/null ) ; then
-		printf "\t(OK)\n"
-		printf "\n---\nPATH='%s'\n---\n" "${PATH}"
+		printf "\t(ok)\n"
+		PATH_OUTPUT=$( printf "%s" "${PATH}" | tr ':' "\n" )
 	else 
 		printf "\t[NOT FOUND]\n"
 		printf 'Adding ~/bin to ${PATH} in ~/.bash_profile ...'
@@ -85,18 +85,24 @@ elif [[ ! -z "${_PARAM[setup]}" ]] ; then
 		printf "\t(OK)\n" 
 	fi
 	
-	printf "\n---\n%s\n---\n" "${DD_OUTPUT}"
-	
 	printf '* Checking installed version ... '
 	PATH="${HOME}/bin:${PATH}"
-	SCRIPT_OUTPUT=$( fdd-import --version )
+	SCRIPT_OUTPUT=$( fdd-import --version 2>& 1 )
 	if [ $? -gt 0 ] ; then
 		printf "[PROBLEM?]\n" 
 	else
 		printf "\t(OK)\n" 
 	fi
 
-	printf "\n---\n%s\n---\n" "${SCRIPT_OUTPUT}"
+	echo ""
+	printf "PATH test output:"
+	printf "\n---\n%s\n---\n\n" "${PATH_OUTPUT}"
+
+	printf "device image test output:"
+	printf "\n---\n%s\n---\n\n" "${DD_OUTPUT}"
+
+	printf "script version test output:"
+	printf "\n---\n%s\n---\n\n" "${SCRIPT_OUTPUT}"
 	
 	echo ""
 	printf "[${CMD}] When this script finishes, copy all the output and paste into a text file. Then:\n\n"
