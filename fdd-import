@@ -19,6 +19,7 @@ fi
 CMD=$(basename "${SCRIPTPATH}")
 
 BINDIR=$(dirname "${SCRIPTPATH}")
+PATH_INHERITED="${PATH}"
 PATH=${BINDIR}:${PATH}
 
 source "${BINDIR}/fdd-define-aliases"
@@ -67,31 +68,33 @@ elif [[ ! -z "${_PARAM[setup]}" ]] ; then
 		printf "\t(ok)\n"
 	fi
 	
+	PATH="${PATH_INHERITED}"
+
 	printf '* Checking ${PATH} for ~/bin ... '
 	if ( printf "%s" "${PATH}" | tr ':' "\n" | grep -F "${HOME}/bin" > /dev/null ) ; then
 		printf "\t(ok)\n"
 		PATH_OUTPUT=$( printf "%s" "${PATH}" | tr ':' "\n" )
 	else 
 		printf "\t[NOT FOUND]\n"
-		printf 'Adding ~/bin to ${PATH} in ~/.bash_profile ...'
-		echo 'PATH="${HOME}/bin:${PATH}"' >> "${HOME}/.bash_profile" && printf "\t(OK)\n"
+		printf '* Add ~/bin to $PATH in profile ...'
+		echo 'PATH="${HOME}/bin:${PATH}"' >> "${HOME}/.bash_profile" && printf "\t(ok)\n"
 	fi
 
 	printf '* Checking optical disc drive ... '
 	DD_OUTPUT=$( dd if=/dev/scd0 of=/dev/null count=1 2>&1 )
 	if [ $? -gt 0 ] ; then
-		printf "[PROBLEM?]\n" 
+		printf "\t[PROBLEM?]\n" 
 	else
-		printf "\t(OK)\n" 
+		printf "\t(ok)\n" 
 	fi
 	
 	printf '* Checking installed version ... '
 	PATH="${HOME}/bin:${PATH}"
 	SCRIPT_OUTPUT=$( fdd-import --version 2>& 1 )
 	if [ $? -gt 0 ] ; then
-		printf "[PROBLEM?]\n" 
+		printf "\t[PROBLEM?]\n" 
 	else
-		printf "\t(OK)\n" 
+		printf "\t(ok)\n" 
 	fi
 
 	echo ""
