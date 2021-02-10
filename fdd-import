@@ -102,8 +102,8 @@ elif [[ ! -z "${_PARAM[setup]}" ]] ; then
 	printf "[${CMD}] When this script finishes, copy all the output and paste into a text file. Then:\n\n"
 	printf "  exit\n"
 	printf "  \t[... then restart Cygwin]\n\n"
-	printf "  fdd --version\n"
-	printf "  \t[... the output should be identical to the installed version above.]\n"
+	printf "  fdd-import --version\n"
+	printf "  \t[... the output should be identical to '${SCRIPT_OUTPUT}'.]\n"
 
 	exit 0
 	
