@@ -53,7 +53,7 @@ elif [[ ! -z "${_PARAM[setup]}" ]] ; then
 	echo "Setting up local environment for convenient use."
 	echo ""
 	
-	printf "* Checking ~/bin directory... "
+	printf "* Checking ~/bin scripts directory... "
 	if [[ ! -e "${HOME}/bin" ]] ; then
 		mkdir --verbose "${HOME}/bin"
 	else
